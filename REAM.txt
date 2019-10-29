@@ -1,0 +1,122 @@
+CISQLite3：https://github.com/cindustries/unreal-sqlite3.git
+SQLite3UE4：https://github.com/KhArtNJava/SQLite3UE4.git  基于CISQLite3的demo
+SQLite3UE4：https://github.com/Jusas/SQLite3UE4.git 基于CISQLite3的demo
+1.下载插件CISQLite3
+
+2.创建UE4工程，添加Plugins目录和CISQLite3，将1下载到的插件放入Plugins/CISQLite3
+
+3.工程添加uplugin
+
+.uproject添加
+"Plugins": [
+    {
+        "Name": "CISQLite3",
+        "Enabled": true
+    }
+]
+ 
+UE工程目录.Build.cs 添加模块
+PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "CISQLite3" });
+ 
+插件目录.Build.cs
+public class CISQLite3 : ModuleRules
+{
+  public CISQLite3(ReadOnlyTargetRules Target) : base(Target)
+  {
+        bEnableUndefinedIdentifierWarnings = false;
+ 
+        PublicIncludePaths.AddRange(
+      new string[] {
+        "CISQLite3/Public"
+      }
+    );
+ 
+    PrivateIncludePaths.AddRange(
+      new string[] {
+        "CISQLite3/Private"
+      }
+    );
+ 
+    PublicDependencyModuleNames.AddRange(
+      new string[] {
+        "Engine",
+        "Core",
+        "CoreUObject"
+      }
+    );
+ 
+    PrivateDependencyModuleNames.AddRange(
+      new string[] {}
+    );
+ 
+    DynamicallyLoadedModuleNames.AddRange(
+      new string[] {}
+    );
+  }
+}
+4.删除工程目录的Binaries和插件Binaries
+
+5.选中.uproject，生成VS解决方案
+
+6.编译
+
+报错：
+
+1.Error:There may be an operating system error or the module may not be properly set up
+
+解决办法：将插件添加到.uproject里即可解决
+
+2.C4668警告错误
+
+解决办法：https://blog.csdn.net/yuxikuo_1/article/details/102799307
+
+7.使用
+
+由于自己没有创建数据库，所以可以从其他demo里下载数据库文件.db
+
+CustomCharacter.h 添加
+	UFUNCTION(BlueprintCallable, Category = "My Actor")
+	bool GetMyStats();
+ 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My Actor")
+	FString Name;
+ 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My Actor")
+	int32 Age;
+ 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My Actor")
+	FString Gender;
+ 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My Actor")
+	float Height;
+ 
+CustomCharacter.cpp 添加
+#include "SQLiteDatabase.h"
+ 
+bool AMyCharacter::GetMyStats()
+{
+	FString dbName = TEXT("TestDatabase");
+	FString actorName = TEXT("Bruce Willis");
+ 
+	if (!USQLiteDatabase::IsDatabaseRegistered(dbName))
+	{
+		USQLiteDatabase::RegisterDatabase(dbName, "Databases/TestDatabase.db", true);
+	}
+ 
+	bool didPopulate = USQLiteDatabase::GetDataIntoObject(dbName, FString::Printf(TEXT("SELECT Name, Age, Gender, Height FROM Actors WHERE Name = \"%s\""), *actorName), this);
+ 
+	return didPopulate;
+}
+ 
+void AMyCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	bool is_ok = GetMyStats();
+	if (is_ok)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Name = %s"),*Name);
+		UE_LOG(LogTemp, Log, TEXT("Age = %d"), Age);
+		UE_LOG(LogTemp, Log, TEXT("Gender = %s"), *Gender);
+		UE_LOG(LogTemp, Log, TEXT("Height = %f"), Height);
+	}
+}
